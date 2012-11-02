@@ -29,9 +29,9 @@ typedef struct _CompilerKitNode               CompilerKitNode; /* dummy object *
 
 typedef struct _CompilerKitNodeInterface
 {
-    GObjectCalss parent_class;
+    GTypeInterface parent_class;
     void (*do_action) (CompilerKitNode *self);
-};
+} CompilerKitNodeInterface;
 
 GType compilerkit_node_get_type (void);
 
