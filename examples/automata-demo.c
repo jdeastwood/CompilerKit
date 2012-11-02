@@ -8,7 +8,7 @@ CompilerKitFSM *state_machine ()
 {
     CompilerKitFSM* fsm; // Creates pointer for FSM
     
-    fsm = compilerkit_FSM_new("A");  // Calls the constructor for the FSM
+    fsm = COMPILERKIT_FSM(compilerkit_dfa_new("A"));  // Calls the constructor for the FSM
 //    compilerkit_FSM_set_start_state(fsm, "A");
     compilerkit_FSM_add_transition (fsm, "A", "B", 'd');
     compilerkit_FSM_add_transition (fsm, "A", "F", 'f');
