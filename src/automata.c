@@ -386,20 +386,37 @@ gchar *compilerkit_FSM_get_next_state (CompilerKitFSM *self, gchar *from_state, 
     return COMPILERKIT_FSM_GET_CLASS(self)->get_next_state(self, from_state, transition);
 }
 
+void add_transition_impl (CompilerKitFSM* self, gchar *from_state, gchar *to_state, gchar transition)
+{
+     gchar *key;
+    g_return_if_fail (COMPILERKIT_IS_FSM (self));
+
+    compilerkit_FSM_add_state (self, from_state);
+    compilerkit_FSM_add_state (self, to_state);
+
+    /**
+     *       * @todo Let's pretend we're a DFA, since that's simpler to implement for now.
+     *             * This should really be split up into an abstract automaton base class, since DFA and NFA differ on what to do here.
+     *                   */
+    key = compilerkit_FSM_get_transition_key (from_state, transition);
+
+    g_hash_table_insert (self->priv->transitions, key, to_state);
+}
+
 static void add_accepting_state_impl (CompilerKitFSM* self, gchar *state)
 {
     compilerkit_FSM_add_state (self, state);
-    
-	g_hash_table_insert(self->priv->accept_states,state, NULL);
+
+    g_hash_table_insert(self->priv->accept_states,state, NULL);
 }
 
 static void merge_impl (CompilerKitFSM *self, CompilerKitFSM *other)
 {
-	CompilerKitFSMPrivate* priv = self->priv;
-	CompilerKitFSMPrivate* newPriv = other->priv;
-	
-	compilerkit_FSM_mergeTables(priv->states, newPriv->states);
-	compilerkit_FSM_mergeTables(priv->transitions, newPriv->transitions);
+    CompilerKitFSMPrivate* priv = self->priv;
+    CompilerKitFSMPrivate* newPriv = other->priv;
+
+    compilerkit_FSM_mergeTables(priv->states, newPriv->states);
+    compilerkit_FSM_mergeTables(priv->transitions, newPriv->transitions);
 }
 
 
@@ -408,7 +425,7 @@ static void add_state_impl (CompilerKitFSM* self, gchar *state)
     g_assert (self);
     g_assert (state);
 
-	g_hash_table_insert(self->priv->states,state, NULL);
+    g_hash_table_insert(self->priv->states,state, NULL);
 }
 
 static gboolean has_state_impl (CompilerKitFSM *self, gchar *state)
@@ -424,8 +441,8 @@ static void set_start_state_impl (CompilerKitFSM* self, gchar *state)
     compilerkit_FSM_add_state (self, state);
 
     g_free (self->priv->start);
-    
-	self->priv->start = g_strdup (state);
+
+    self->priv->start = g_strdup (state);
 }
 
 static gchar* get_start_state_impl (CompilerKitFSM* self)
@@ -463,5 +480,4 @@ static gchar* get_next_state_impl (CompilerKitFSM *self, gchar *from_state, gcha
     key = compilerkit_FSM_get_transition_key (from_state, transition);
     return g_hash_table_lookup (self->priv->transitions, key);
 }
-
 
