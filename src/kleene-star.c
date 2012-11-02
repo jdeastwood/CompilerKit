@@ -18,8 +18,11 @@
 #include "CompilerKit/kleene-star.h"
 #include "CompilerKit/empty-set.h"
 #include "CompilerKit/empty-string.h"
+#include "CompilerKit/node.h"
 #define COMPILERKIT_KLEENE_STAR_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), COMPILERKIT_TYPE_KLEENE_STAR, CompilerKitKleeneStarPrivate))
-G_DEFINE_TYPE(CompilerKitKleeneStar, compilerkit_kleene_star, G_TYPE_OBJECT);
+static void compilerkit_node_interface_init (CompilerKitNodeInterface *iface);
+G_DEFINE_TYPE_WITH_CODE(CompilerKitKleeneStar, compilerkit_kleene_star, G_TYPE_OBJECT,
+        G_IMPLEMENT_INTERFACE (COMPILERKIT_TYPE_NODE, compilerkit_node_interface_init));
 
 static void compilerkit_kleene_star_finalize (GObject* object);
 static void compilerkit_kleene_star_dispose (GObject* object);
@@ -58,6 +61,17 @@ compilerkit_kleene_star_class_init (CompilerKitKleeneStarClass *klass)
   /* Hook finalization functions */
   g_object_class->dispose = compilerkit_kleene_star_dispose;   /* instance destructor, reverse of init */
   g_object_class->finalize = compilerkit_kleene_star_finalize; /* class finalization, reverse of class init */
+}
+
+/*Sample virtual method implementation */
+static void compilerkit_kleene_star_do_action (CompilerKitNode *self)
+{
+    g_print ("Implementation of Node interface do_action method.\n");
+}
+
+static void compilerkit_node_interface_init (CompilerKitNodeInterface *iface)
+{
+    iface->do_action = compilerkit_kleene_star_do_action;
 }
 
 /**
