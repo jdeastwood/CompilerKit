@@ -67,6 +67,22 @@ typedef struct _CompilerKitFSMClass
 {
   /** Base class (GobjectClass) */
   GObjectClass parent_class;
+
+    void (*set_start_state)         (CompilerKitFSM *self, gchar *state);
+    gchar* (*get_start_state)        (CompilerKitFSM *self);
+    void (*add_state)               (CompilerKitFSM *self, gchar *state);
+    GList* (*get_states)             (CompilerKitFSM *self);
+    GList* (*get_transitions)        (CompilerKitFSM *self);
+    gboolean (*has_state)           (CompilerKitFSM *self, gchar *state);
+    void (*add_transition)          (CompilerKitFSM *self, gchar *from_state, gchar *to_state, gchar input);
+    gchar* (*get_next_state)         (CompilerKitFSM *self, gchar *from_state, gchar transition);
+    void (*add_accepting_state)     (CompilerKitFSM *self, gchar *state);
+    GList* (*get_accepting_states)   (CompilerKitFSM *self);
+    gboolean (*is_accepting_state)  (CompilerKitFSM *self, gchar *state);
+    void (*merge)                   (CompilerKitFSM *self, CompilerKitFSM *other);
+
+
+
 } CompilerKitFSMClass;
 
 /**

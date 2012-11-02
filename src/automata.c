@@ -21,7 +21,7 @@
 
 #define COMPILERKIT_FSM_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), COMPILERKIT_TYPE_FSM, CompilerKitFSMPrivate))
 
-G_DEFINE_TYPE(CompilerKitFSM, compilerkit_FSM, G_TYPE_OBJECT);
+G_DEFINE_ABSTRACT_TYPE(CompilerKitFSM, compilerkit_FSM, G_TYPE_OBJECT);
 
 /** Private method function prototypes */
 static void compilerkit_FSM_finalize (GObject* object);
@@ -42,6 +42,39 @@ static gchar *compilerkit_FSM_get_transition_key (gchar *state, gchar transition
 
     return result;
 }
+
+
+/**
+ * Copy entries from table2 into table1.
+ */
+static void compilerkit_FSM_mergeTables (GHashTable* table1, GHashTable* table2)
+{
+	GHashTableIter iter;
+	gpointer key, value;
+
+	g_hash_table_iter_init (&iter, table2);
+	while (g_hash_table_iter_next (&iter, &key, &value))
+	{
+		g_hash_table_insert(table1, key, value);
+	}
+}
+
+static void set_start_state_impl         (CompilerKitFSM *self, gchar *state);
+static gchar* get_start_state_impl        (CompilerKitFSM *self);
+static void add_state_impl               (CompilerKitFSM *self, gchar *state);
+static GList* get_states_impl             (CompilerKitFSM *self);
+static GList* get_transitions_impl        (CompilerKitFSM *self);
+static gboolean has_state_impl           (CompilerKitFSM *self, gchar *state);
+static void add_transition_impl          (CompilerKitFSM *self, gchar *from_state, gchar *to_state, gchar input);
+static gchar* get_next_state_impl         (CompilerKitFSM *self, gchar *from_state, gchar transition);
+static void add_accepting_state_impl     (CompilerKitFSM *self, gchar *state);
+static GList* get_accepting_states_impl   (CompilerKitFSM *self);
+static gboolean is_accepting_state_impl  (CompilerKitFSM *self, gchar *state);
+static void merge_impl                   (CompilerKitFSM *self, CompilerKitFSM *other);
+
+
+
+
 
 /**
  * @struct _CompilerKitFSMPrivate
@@ -71,6 +104,20 @@ struct _CompilerKitFSMPrivate
 static void
 compilerkit_FSM_class_init (CompilerKitFSMClass *klass)
 {
+
+    klass->set_start_state = set_start_state_impl;
+    klass->get_start_state = get_start_state_impl;
+    klass->add_state = &add_state_impl;
+    klass->get_states = &get_states_impl;
+    klass->get_transitions = &get_transitions_impl;
+    klass->has_state = &has_state_impl;
+    klass->add_transition = &add_transition_impl;
+    klass->get_next_state = &get_next_state_impl;
+    klass->add_accepting_state = &add_accepting_state_impl;
+    klass->get_accepting_states = &get_accepting_states_impl;
+    klass->is_accepting_state = &is_accepting_state_impl;
+    klass->merge = &merge_impl;
+
     GObjectClass *g_object_class;
 
     /* Add private structure */
@@ -174,21 +221,8 @@ compilerkit_FSM_dispose (GObject* object)
  */
 void compilerkit_FSM_add_transition (CompilerKitFSM* self, gchar *from_state, gchar *to_state, gchar transition)
 {
-    gchar *key;
-    g_return_if_fail (COMPILERKIT_IS_FSM (self));
-
-    compilerkit_FSM_add_state (self, from_state);
-    compilerkit_FSM_add_state (self, to_state);
-    
-    /**
-      * @todo Let's pretend we're a DFA, since that's simpler to implement for now.
-      * This should really be split up into an abstract automaton base class, since DFA and NFA differ on what to do here.
-      */
-    key = compilerkit_FSM_get_transition_key (from_state, transition);
-
-    g_hash_table_insert (self->priv->transitions, key, to_state);
+   COMPILERKIT_FSM_GET_CLASS(self)->add_transition(self, from_state, to_state, transition); 
 }
-
 /**
  * compilerkit_FSM_add_accepting_state:
  * Add an accepting state to a finite state machine.
@@ -201,10 +235,9 @@ void compilerkit_FSM_add_transition (CompilerKitFSM* self, gchar *from_state, gc
  */
 void compilerkit_FSM_add_accepting_state (CompilerKitFSM* self, gchar *state)
 {
-    compilerkit_FSM_add_state (self, state);
-    
-	g_hash_table_insert(self->priv->accept_states,state, NULL);
+    COMPILERKIT_FSM_GET_CLASS(self)->add_accepting_state(self, state);
 }
+
 
 /**
  * compilerkit_FSM_merge:
@@ -218,26 +251,7 @@ void compilerkit_FSM_add_accepting_state (CompilerKitFSM* self, gchar *state)
  */
 void compilerkit_FSM_merge (CompilerKitFSM *self, CompilerKitFSM *other)
 {
-	CompilerKitFSMPrivate* priv = self->priv;
-	CompilerKitFSMPrivate* newPriv = other->priv;
-	
-	compilerkit_FSM_mergeTables(priv->states, newPriv->states);
-	compilerkit_FSM_mergeTables(priv->transitions, newPriv->transitions);
-}
-
-/**
- * Copy entries from table2 into table1.
- */
-static void compilerkit_FSM_mergeTables(GHashTable* table1, GHashTable* table2)
-{
-	GHashTableIter iter;
-	gpointer key, value;
-
-	g_hash_table_iter_init (&iter, table2);
-	while (g_hash_table_iter_next (&iter, &key, &value))
-	{
-		g_hash_table_insert(table1, key, value);
-	}
+    COMPILERKIT_FSM_GET_CLASS(self)->merge(self, other);
 }
 
 /**
@@ -252,10 +266,7 @@ static void compilerkit_FSM_mergeTables(GHashTable* table1, GHashTable* table2)
  */
 void compilerkit_FSM_add_state (CompilerKitFSM* self, gchar *state)
 {
-    g_assert (self);
-    g_assert (state);
-
-	g_hash_table_insert(self->priv->states,state, NULL);
+    COMPILERKIT_FSM_GET_CLASS(self)->add_state(self, state);
 }
 
 /**
@@ -270,10 +281,7 @@ void compilerkit_FSM_add_state (CompilerKitFSM* self, gchar *state)
  */
 gboolean compilerkit_FSM_has_state (CompilerKitFSM *self, gchar *state)
 {
-    g_assert (self);
-
-    if (!state) return FALSE;
-    return g_hash_table_lookup_extended (self->priv->states, state, NULL, NULL);
+    return COMPILERKIT_FSM_GET_CLASS(self)->has_state(self, state);
 }
 
 /**
@@ -288,11 +296,7 @@ gboolean compilerkit_FSM_has_state (CompilerKitFSM *self, gchar *state)
  */
 void compilerkit_FSM_set_start_state (CompilerKitFSM* self, gchar *state)
 {
-    compilerkit_FSM_add_state (self, state);
-
-    g_free (self->priv->start);
-    
-	self->priv->start = g_strdup (state);
+    COMPILERKIT_FSM_GET_CLASS(self)->set_start_state(self, state);
 }
 
 /**
@@ -306,7 +310,7 @@ void compilerkit_FSM_set_start_state (CompilerKitFSM* self, gchar *state)
  */
 gchar *compilerkit_FSM_get_start_state (CompilerKitFSM* self)
 {
-    return self->priv->start;
+    return COMPILERKIT_FSM_GET_CLASS(self)->get_start_state(self);
 }
 
 /**
@@ -318,9 +322,9 @@ gchar *compilerkit_FSM_get_start_state (CompilerKitFSM* self)
  * @return GList*          A GList containing all accepting states. Use `g_list_free()` when done using it.
  * @memberof CompilerKitFSM
  */
-GList *compilerkit_FSM_get_accepting_states (CompilerKitFSM *self)
+GList* compilerkit_FSM_get_accepting_states (CompilerKitFSM *self)
 {
-    return g_hash_table_get_keys (self->priv->accept_states);
+    return COMPILERKIT_FSM_GET_CLASS(self)->get_accepting_states(self);
 }
 
 /**
@@ -334,7 +338,7 @@ GList *compilerkit_FSM_get_accepting_states (CompilerKitFSM *self)
  */
 GList *compilerkit_FSM_get_transitions (CompilerKitFSM *self)
 {
-    return g_hash_table_get_keys (self->priv->transitions);
+    return COMPILERKIT_FSM_GET_CLASS(self)->get_transitions(self);
 }
 
 /**
@@ -348,7 +352,7 @@ GList *compilerkit_FSM_get_transitions (CompilerKitFSM *self)
  */
 GList *compilerkit_FSM_get_states (CompilerKitFSM *self)
 {
-    return g_hash_table_get_keys (self->priv->states);
+    return COMPILERKIT_FSM_GET_CLASS(self)->get_states(self);
 }
 
 /**
@@ -363,9 +367,7 @@ GList *compilerkit_FSM_get_states (CompilerKitFSM *self)
  */
 gboolean compilerkit_FSM_is_accepting_state (CompilerKitFSM *self, gchar *state)
 {
-    g_assert (self);
-    if (!state) return FALSE;
-    return g_hash_table_lookup_extended (self->priv->accept_states, state, NULL, NULL);
+    return COMPILERKIT_FSM_GET_CLASS(self)->is_accepting_state(self, state);
 }
 
 /**
@@ -381,10 +383,85 @@ gboolean compilerkit_FSM_is_accepting_state (CompilerKitFSM *self, gchar *state)
  */
 gchar *compilerkit_FSM_get_next_state (CompilerKitFSM *self, gchar *from_state, gchar transition)
 {
+    return COMPILERKIT_FSM_GET_CLASS(self)->get_next_state(self, from_state, transition);
+}
+
+static void add_accepting_state_impl (CompilerKitFSM* self, gchar *state)
+{
+    compilerkit_FSM_add_state (self, state);
+    
+	g_hash_table_insert(self->priv->accept_states,state, NULL);
+}
+
+static void merge_impl (CompilerKitFSM *self, CompilerKitFSM *other)
+{
+	CompilerKitFSMPrivate* priv = self->priv;
+	CompilerKitFSMPrivate* newPriv = other->priv;
+	
+	compilerkit_FSM_mergeTables(priv->states, newPriv->states);
+	compilerkit_FSM_mergeTables(priv->transitions, newPriv->transitions);
+}
+
+
+static void add_state_impl (CompilerKitFSM* self, gchar *state)
+{
+    g_assert (self);
+    g_assert (state);
+
+	g_hash_table_insert(self->priv->states,state, NULL);
+}
+
+static gboolean has_state_impl (CompilerKitFSM *self, gchar *state)
+{
+    g_assert (self);
+
+    if (!state) return FALSE;
+    return g_hash_table_lookup_extended (self->priv->states, state, NULL, NULL);
+}
+
+static void set_start_state_impl (CompilerKitFSM* self, gchar *state)
+{
+    compilerkit_FSM_add_state (self, state);
+
+    g_free (self->priv->start);
+    
+	self->priv->start = g_strdup (state);
+}
+
+static gchar* get_start_state_impl (CompilerKitFSM* self)
+{
+    return self->priv->start;
+}
+
+static GList* get_accepting_states_impl (CompilerKitFSM *self)
+{
+    return g_hash_table_get_keys (self->priv->accept_states);
+}
+
+static GList* get_transitions_impl (CompilerKitFSM *self)
+{
+    return g_hash_table_get_keys (self->priv->transitions);
+}
+
+static GList* get_states_impl (CompilerKitFSM *self)
+{
+    return g_hash_table_get_keys (self->priv->states);
+}
+
+static gboolean is_accepting_state_impl (CompilerKitFSM *self, gchar *state)
+{
+    g_assert (self);
+    if (!state) return FALSE;
+    return g_hash_table_lookup_extended (self->priv->accept_states, state, NULL, NULL);
+}
+
+static gchar* get_next_state_impl (CompilerKitFSM *self, gchar *from_state, gchar transition)
+{
     gchar *key;
     g_assert (self);
     if (!from_state) return from_state;
     key = compilerkit_FSM_get_transition_key (from_state, transition);
     return g_hash_table_lookup (self->priv->transitions, key);
 }
+
 
