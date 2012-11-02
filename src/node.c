@@ -17,34 +17,12 @@
  */
 #include "CompilerKit/node.h"
 
-static void compilerkit_node_base_init (gpointer g_class)
-{
-    static gboolean initialized = FALSE;
+G_DEFINE_INTERFACE (CompilerKitNode, compilerkit_node, G_TYPE_OBJECT);
 
-    if (!initialized) {
-        /* create interface signals here. */
-        initialized = TRUE;
-    }
-}
-
-GType compilerkit_node_get_type (void)
+static void
+compilerkit_node_default_init (CompilerKitNodeInterface *iface)
 {
-    static GType type = 0;
-    if (type == 0) {
-        static const GTypeInfo info = {
-            sizeof (CompilerKitNodeInterface),
-            compilerkit_node_base_init,   /* base_init */
-            NULL,   /* base_finalize */
-            NULL,   /* class_init */
-            NULL,   /* class_finalize */
-            NULL,   /* class_data */
-            0,
-            0,      /* n_preallocs */
-            NULL    /* instance_init */
-        };
-        type = g_type_register_static (G_TYPE_INTERFACE, "CompilerKitNode", &info, 0);
-    }
-    return type;
+      /* add properties and signals here, will only called once */
 }
 
 void compilerkit_node_do_action (CompilerKitNode *self)
