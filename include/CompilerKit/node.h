@@ -29,7 +29,7 @@ typedef struct _CompilerKitNode               CompilerKitNode; /* dummy object *
 
 typedef struct _CompilerKitNodeInterface
 {
-    GTypeInterface parent_iface;
+    GObjectCalss parent_class;
     void (*do_action) (CompilerKitNode *self);
 };
 

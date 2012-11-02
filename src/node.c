@@ -20,5 +20,5 @@ G_DEFINE_INTERFACE(CompilerKitNode, compilerkit_node, G_TYPE_INTERFACE);
 
 void compilerkit_node_do_action (CompilerKitNode *self)
 {
-
+    /* TODO: Find some reason for this Interface to exist. */
 }
